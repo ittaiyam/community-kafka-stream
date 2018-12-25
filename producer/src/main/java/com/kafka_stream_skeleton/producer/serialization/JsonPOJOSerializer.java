@@ -1,6 +1,7 @@
 package com.kafka_stream_skeleton.producer.serialization;
 
 
+import com.cellwize.model.MeasResults;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -11,13 +12,13 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Map;
 
-public class JsonPOJOSerializer implements Serializer<LoginData> {
+public class JsonPOJOSerializer implements Serializer<MeasResults> {
     @Override
     public void configure(Map<String, ?> map, boolean b) {
     }
 
     @Override
-    public byte[] serialize(String arg0, LoginData arg1) {
+    public byte[] serialize(String arg0, MeasResults arg1) {
         byte[] retVal = null;
         ObjectMapper objectMapper = new ObjectMapper();
         try {

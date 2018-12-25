@@ -1,5 +1,6 @@
 package com.kafka_stream_skeleton.producer;
 
+import com.cellwize.model.MeasResults;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -14,7 +15,7 @@ public class LoginProducer {
 
     private Producer producer;
 
-    private Producer<String, LoginData> getProducer() {
+    private Producer<String, MeasResults> getProducer() {
         String kafkaUrl = System.getenv("KAFKA_URL");
 
         if(kafkaUrl==null){
@@ -36,16 +37,24 @@ public class LoginProducer {
 
     }
 
+    public void produce(String topicName, String userName, String userPassword, String ip, MeasResults measResults){
 
-    public void produce(String topicName, String userName, String userPassword, String ip, Long date) {
 
-        LoginData loginData = new LoginData(userName, userPassword, ip, date, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS").format(date));
-
-        System.out.println("produce:" + loginData);
-
-        ProducerRecord<String, LoginData> rec = new ProducerRecord<>(topicName, loginData);
-
+        ProducerRecord<String, MeasResults> rec = new ProducerRecord<>(topicName, measResults);
+        System.out.println("produce:" + rec);
         getProducer().send(rec);
     }
+
+
+//    public void produce(String topicName, String userName, String userPassword, String ip, Long date) {
+//
+//        LoginData loginData = new LoginData(userName, userPassword, ip, date, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS").format(date));
+//
+//        System.out.println("produce:" + loginData);
+//
+//        ProducerRecord<String, LoginData> rec = new ProducerRecord<>(topicName, loginData);
+//
+//        getProducer().send(rec);
+//    }
 
 }

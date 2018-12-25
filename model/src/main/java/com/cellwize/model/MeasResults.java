@@ -6,6 +6,16 @@ public class MeasResults {
     private long timestamp;
     private long value;
 
+    @Override
+    public String toString() {
+        return "MeasResults{" +
+                "counterName='" + counterName + '\'' +
+                ", cellGuid='" + cellGuid + '\'' +
+                ", timestamp=" + timestamp +
+                ", value=" + value +
+                '}';
+    }
+
     public String getCounterName() {
         return counterName;
     }
