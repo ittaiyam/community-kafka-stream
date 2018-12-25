@@ -6,11 +6,11 @@ public class KPIDataPoint {
     private String kpiName;
     private String cellGuid;
     private long timestamp;
-    private long value;
+    private double value;
 
     public KPIDataPoint() {}
 
-    public KPIDataPoint(String kpiName, String cellGuid, long timestamp, long value) {
+    public KPIDataPoint(String kpiName, String cellGuid, long timestamp, double value) {
         this.kpiName = kpiName;
         this.cellGuid = cellGuid;
         this.timestamp = timestamp;
@@ -41,11 +41,11 @@ public class KPIDataPoint {
         this.timestamp = timestamp;
     }
 
-    public long getValue() {
+    public double getValue() {
         return value;
     }
 
-    public void setValue(long value) {
+    public void setValue(double value) {
         this.value = value;
     }
 
