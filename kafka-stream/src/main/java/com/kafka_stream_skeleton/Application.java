@@ -90,7 +90,7 @@ public class Application {
                     return counters.get("counter1") != null && counters.get("counter2") != null;
                 })
                 .map((windowed, counters) -> {
-                    double kpiValue = counters.get("counter1") / counters.get("counter2");
+                    final double kpiValue = counters.get("counter1").doubleValue() / counters.get("counter2").doubleValue();
                     final KPIDataPoint kpiDataPoint = new KPIDataPoint("generic-kpi", windowed.key().getGuid(), windowed.key().getTimestamp(), kpiValue);
                     return new KeyValue<>("", kpiDataPoint);
                 })
