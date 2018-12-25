@@ -1,7 +1,9 @@
 package com.kafka_stream_skeleton;
 
+import com.cellwize.model.KPIDataPoint;
+import com.cellwize.model.Pair;
+import com.cellwize.model.MeasResults;
 import com.kafka_stream_skeleton.model.LoginCount;
-import com.kafka_stream_skeleton.model.LoginData;
 import com.kafka_stream_skeleton.serialization.SerdeBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -12,8 +14,11 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongUnaryOperator;
 
 public class Application {
 
@@ -40,34 +45,53 @@ public class Application {
         streamsConfiguration.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         streamsConfiguration.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100);
 
-        Serde<LoginData> loginDataSerde = SerdeBuilder.buildSerde(LoginData.class);
+        final long INTERVAL_SECONDS = 60L;
+
+        Serde<MeasResults> measResultsSerde = SerdeBuilder.buildSerde(MeasResults.class);
+        Serde<Pair> pairSerde = SerdeBuilder.buildSerde(Pair.class);
 
 
         final StreamsBuilder builder = new StreamsBuilder();
 
-        final KStream<String, LoginData> source = builder.stream(INPUT_TOPIC, Consumed.with(Serdes.String(), loginDataSerde));
+        final KStream<String, MeasResults> source = builder.stream(INPUT_TOPIC, Consumed.with(Serdes.String(), measResultsSerde));
+
 
 
         System.out.println("start streaming processing on topic " + INPUT_TOPIC);
 
-        KTable<Windowed<String>, Long> counts = source
+        final LongUnaryOperator quarterer = (long timestamp) -> timestamp - (timestamp % (INTERVAL_SECONDS * 1000L));
+
+        KTable<Windowed<Pair>, Map<String, Long>> counts = source
                 .filter((key, value) -> value != null)
-                .map((key, value) -> new KeyValue<>(value.getUserName(), value))
-                .groupByKey(Serialized.with(Serdes.String(), loginDataSerde))
-                .windowedBy(TimeWindows.of(TimeUnit.SECONDS.toMillis(30)))
-                .count();
+                .map((key, value) -> {
+                    final Pair pair = new Pair(value.getCellGuid(), quarterer.applyAsLong(value.getTimestamp()));
+                    return new KeyValue<>(pair, value);
+                })
+                .groupByKey(Serialized.with(pairSerde, measResultsSerde))
+                .windowedBy(TimeWindows.of(TimeUnit.SECONDS.toMillis(INTERVAL_SECONDS)))
+                .aggregate(HashMap::new, (key, value, aggregate) -> {
+                    aggregate.putIfAbsent(value.getCounterName(), 0L);
+                    long sum = aggregate.get(value.getCounterName()) + value.getValue();
+                    aggregate.put(value.getCounterName(), sum);
+                    return aggregate;
+                });
 
 
         final Serde<String> stringSerde = Serdes.String();
 
-        Serde<LoginCount> loginCountSerde = SerdeBuilder.buildSerde(LoginCount.class);
+        final Serde<KPIDataPoint> kpiDataPointSerde = SerdeBuilder.buildSerde(KPIDataPoint.class);
 
         counts
                 .toStream()
-                .map((windowed,count) ->
-                        new KeyValue<>(windowed.key(),new LoginCount(windowed.key(),
-                                count,windowed.window().start(),windowed.window().end())))
-                .to(OUTPUT_TOPIC, Produced.with(stringSerde, loginCountSerde));
+                .filter((windowed, counters) -> {
+                    return counters.get("counter1") != null || counters.get("counter2") != null;
+                })
+                .map((windowed, counters) -> {
+                    long kpiValue = counters.get("counter1") / counters.get("counter2");
+                    final KPIDataPoint kpiDataPoint = new KPIDataPoint("generic-kpi", windowed.key().getTimestamp(), kpiValue);
+                    return new KeyValue<>(windowed.key(), kpiDataPoint);
+                })
+                .to(OUTPUT_TOPIC, Produced.with(pairSerde, kpiDataPointSerde));
 
 
         System.out.println("Streaming processing will produce results to topic " + OUTPUT_TOPIC);
