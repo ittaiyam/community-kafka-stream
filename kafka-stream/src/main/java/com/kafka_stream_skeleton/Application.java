@@ -8,11 +8,13 @@ import com.kafka_stream_skeleton.serialization.SerdeBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.kstream.*;
+import org.apache.kafka.streams.state.WindowStore;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,22 +61,29 @@ public class Application {
 
         System.out.println("start streaming processing on topic " + INPUT_TOPIC);
 
-        final LongUnaryOperator quarterer = (long timestamp) -> timestamp - (timestamp % (INTERVAL_SECONDS * 1000L));
+        final LongUnaryOperator rounder = (long timestamp) -> timestamp - (timestamp % (INTERVAL_SECONDS * 1000L));
 
-        KTable<Windowed<Pair>, Map<String, Long>> counts = source
+        KTable<Windowed<Pair>, Long> counts = source
                 .filter((key, value) -> value != null)
                 .map((key, value) -> {
-                    final Pair pair = new Pair(value.getCellGuid(), quarterer.applyAsLong(value.getTimestamp()));
+                    final Pair pair = new Pair();
+                    pair.setGuid(value.getCellGuid());
+                    pair.setTimestamp(rounder.applyAsLong(value.getTimestamp()));
                     return new KeyValue<>(pair, value);
                 })
                 .groupByKey(Serialized.with(pairSerde, measResultsSerde))
                 .windowedBy(TimeWindows.of(TimeUnit.SECONDS.toMillis(INTERVAL_SECONDS)))
-                .aggregate(HashMap::new, (key, value, aggregate) -> {
-                    aggregate.putIfAbsent(value.getCounterName(), 0L);
-                    long sum = aggregate.get(value.getCounterName()) + value.getValue();
-                    aggregate.put(value.getCounterName(), sum);
+                .aggregate(() -> 0l, (key, value, aggregate) -> {
+                    aggregate += value.getValue();
                     return aggregate;
-                });
+                        }
+//                .aggregate(HashMap::new, (key, value, aggregate) -> {
+//                    aggregate.putIfAbsent(value.getCounterName(), 0L);
+//                    long sum = aggregate.get(value.getCounterName()) + value.getValue();
+//                    aggregate.put(value.getCounterName(), sum);
+//                    return aggregate;
+//                }
+                ,Materialized.<Pair, Long, WindowStore<Bytes, byte[]>>as("counts-store").withValueSerde(Serdes.Long()));
 
 
         final Serde<String> stringSerde = Serdes.String();
@@ -82,21 +91,22 @@ public class Application {
         final Serde<KPIDataPoint> kpiDataPointSerde = SerdeBuilder.buildSerde(KPIDataPoint.class);
 
         counts
-                .toStream()
-                .filter((windowed, counters) -> {
-                    return counters.get("counter1") != null || counters.get("counter2") != null;
-                })
-                .map((windowed, counters) -> {
-                    long kpiValue = counters.get("counter1") / counters.get("counter2");
-                    final KPIDataPoint kpiDataPoint = new KPIDataPoint("generic-kpi", windowed.key().getTimestamp(), kpiValue);
-                    return new KeyValue<>(windowed.key(), kpiDataPoint);
-                })
-                .to(OUTPUT_TOPIC, Produced.with(pairSerde, kpiDataPointSerde));
+                .toStream().print(Printed.toSysOut());
+//                .filter((windowed, counters) -> {
+//                    return counters.get("counter1") != null || counters.get("counter2") != null;
+//                })
+//                .map((windowed, counters) -> {
+//                    long kpiValue = counters.get("counter1") / counters.get("counter2");
+//                    final KPIDataPoint kpiDataPoint = new KPIDataPoint("generic-kpi", windowed.key().getTimestamp(), kpiValue);
+//                    return new KeyValue<>(windowed.key(), kpiDataPoint);
+//                })
+//                .to(OUTPUT_TOPIC, Produced.with(pairSerde, kpiDataPointSerde));
 
 
         System.out.println("Streaming processing will produce results to topic " + OUTPUT_TOPIC);
 
-        return new KafkaStreams(builder.build(), streamsConfiguration);
+        final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), streamsConfiguration);
+        return  kafkaStreams;
     }
 
 }

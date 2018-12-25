@@ -6,9 +6,7 @@ public class Pair {
     private String guid;
     private long timestamp;
 
-    public Pair(String guid, long timestamp) {
-        this.guid = guid;
-        this.timestamp = timestamp;
+    public Pair() {
     }
 
     public String getGuid() {
@@ -40,5 +38,13 @@ public class Pair {
             isEqual = Objects.equals(other.guid, guid) && Objects.equals(other.timestamp, timestamp);
         }
         return isEqual;
+    }
+
+    @Override
+    public String toString() {
+        return "Pair{" +
+                "guid='" + guid + '\'' +
+                ", timestamp=" + timestamp +
+                '}';
     }
 }

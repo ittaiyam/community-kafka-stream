@@ -1,5 +1,7 @@
 package com.cellwize.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+
 import java.util.Objects;
 
 public class KPIDataPoint {
@@ -8,6 +10,7 @@ public class KPIDataPoint {
     private long timestamp;
     private long value;
 
+    @JsonCreator
     public KPIDataPoint(String kpiName, long timestamp, long value) {
         this.kpiName = kpiName;
         this.timestamp = timestamp;
