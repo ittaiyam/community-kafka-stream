@@ -34,16 +34,16 @@ services:
    ports:
    - "9087:9087"
 
-#  consumer:
-#    build: consumer
-#    restart: always
-#    environment:
-#      OUTPUT_TOPIC: "cw-kpi"
-#      KAFKA_URL: kafka:9092
-#      CONSUMER_GROUP: "cw-kpi-group"
-#    container_name: kafka-consumer
-#    ports:
-#    - "9090:9090"
+  consumer:
+    build: consumer
+    restart: always
+    environment:
+      OUTPUT_TOPIC: "cw-kpi"
+      KAFKA_URL: kafka:9092
+      CONSUMER_GROUP: "cw-kpi-group"
+    container_name: kafka-consumer
+    ports:
+    - "9090:9090"
 
 ## DATA producer/ datagen
 

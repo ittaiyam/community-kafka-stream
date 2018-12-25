@@ -1,12 +1,13 @@
 package com.kafka_stream_skeleton.consumer;
 
-import com.kafka_stream_skeleton.model.LoginCount;
+import com.cellwize.model.KPIDataPoint;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Properties;
 
 public class Application {
@@ -22,7 +23,6 @@ public class Application {
         Properties props = new Properties();
         props.put("bootstrap.servers", kafkaUrl);
 
-
         props.put("group.id", CONSUMER_GROUP);
 
         /*
@@ -31,16 +31,16 @@ public class Application {
         props.put("key.deserializer", StringDeserializer.class.getName());
         props.put("value.deserializer", "com.kafka_stream_skeleton.consumer.serialization.JsonPOJODeserializer");
 
-        KafkaConsumer<String, LoginCount> consumer = new KafkaConsumer<>(props);
+        KafkaConsumer<String, KPIDataPoint> consumer = new KafkaConsumer<>(props);
 
-        consumer.subscribe(Arrays.asList(TOPIC));
+        consumer.subscribe(Collections.singletonList(TOPIC));
 
         boolean running = true;
 
         try {
             while (running) {
-                ConsumerRecords<String, LoginCount> records = consumer.poll(1000);
-                for (ConsumerRecord<String, LoginCount> record : records) {
+                ConsumerRecords<String, KPIDataPoint> records = consumer.poll(1000);
+                for (ConsumerRecord<String, KPIDataPoint> record : records) {
                     System.out.println(String.format("MESSAGE=> key:%s, value:%s",  record.key(), record.value()));
                 }
             }

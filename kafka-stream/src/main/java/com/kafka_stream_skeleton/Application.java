@@ -85,16 +85,16 @@ public class Application {
         final Serde<KPIDataPoint> kpiDataPointSerde = SerdeBuilder.buildSerde(KPIDataPoint.class);
 
         counts
-                .toStream().print(Printed.toSysOut());
-//                .filter((windowed, counters) -> {
-//                    return counters.get("counter1") != null || counters.get("counter2") != null;
-//                })
-//                .map((windowed, counters) -> {
-//                    long kpiValue = counters.get("counter1") / counters.get("counter2");
-//                    final KPIDataPoint kpiDataPoint = new KPIDataPoint("generic-kpi", windowed.key().getTimestamp(), kpiValue);
-//                    return new KeyValue<>(windowed.key(), kpiDataPoint);
-//                })
-//                .to(OUTPUT_TOPIC, Produced.with(pairSerde, kpiDataPointSerde));
+                .toStream()
+                .filter((windowed, counters) -> {
+                    return counters.get("counter1") != null && counters.get("counter2") != null;
+                })
+                .map((windowed, counters) -> {
+                    long kpiValue = counters.get("counter1") / counters.get("counter2");
+                    final KPIDataPoint kpiDataPoint = new KPIDataPoint("generic-kpi", windowed.key().getGuid(), windowed.key().getTimestamp(), kpiValue);
+                    return new KeyValue<>("", kpiDataPoint);
+                })
+                .to(OUTPUT_TOPIC, Produced.with(Serdes.String(), kpiDataPointSerde));
 
 
         System.out.println("Streaming processing will produce results to topic " + OUTPUT_TOPIC);

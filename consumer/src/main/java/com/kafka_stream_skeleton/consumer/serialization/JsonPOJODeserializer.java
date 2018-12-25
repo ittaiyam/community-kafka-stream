@@ -1,14 +1,14 @@
 package com.kafka_stream_skeleton.consumer.serialization;
 
 
+import com.cellwize.model.KPIDataPoint;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kafka_stream_skeleton.model.LoginCount;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Map;
 
-public class JsonPOJODeserializer implements Deserializer<LoginCount> {
+public class JsonPOJODeserializer implements Deserializer<KPIDataPoint> {
 
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -17,18 +17,18 @@ public class JsonPOJODeserializer implements Deserializer<LoginCount> {
     }
 
     @Override
-    public LoginCount deserialize(String topic, byte[] data) {
+    public KPIDataPoint deserialize(String topic, byte[] data) {
         if (data == null)
             return null;
 
-        LoginCount loginCount;
+        KPIDataPoint kpiDataPoint;
         try {
-            loginCount = objectMapper.readValue(data, LoginCount.class);
+            kpiDataPoint = objectMapper.readValue(data, KPIDataPoint.class);
         } catch (Exception e) {
             throw new SerializationException(e);
         }
 
-        return loginCount;
+        return kpiDataPoint;
     }
 
 

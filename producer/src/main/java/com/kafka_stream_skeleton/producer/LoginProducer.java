@@ -5,9 +5,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import com.kafka_stream_skeleton.model.LoginData;
 
-import java.text.SimpleDateFormat;
 import java.util.Properties;
 
 public class LoginProducer {
@@ -44,17 +42,4 @@ public class LoginProducer {
         System.out.println("produce:" + rec);
         getProducer().send(rec);
     }
-
-
-//    public void produce(String topicName, String userName, String userPassword, String ip, Long date) {
-//
-//        LoginData loginData = new LoginData(userName, userPassword, ip, date, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS").format(date));
-//
-//        System.out.println("produce:" + loginData);
-//
-//        ProducerRecord<String, LoginData> rec = new ProducerRecord<>(topicName, loginData);
-//
-//        getProducer().send(rec);
-//    }
-
 }

@@ -1,7 +1,5 @@
 package com.cellwize.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-
 import java.util.Objects;
 
 public class KPIDataPoint {
@@ -10,9 +8,11 @@ public class KPIDataPoint {
     private long timestamp;
     private long value;
 
-    @JsonCreator
-    public KPIDataPoint(String kpiName, long timestamp, long value) {
+    public KPIDataPoint() {}
+
+    public KPIDataPoint(String kpiName, String cellGuid, long timestamp, long value) {
         this.kpiName = kpiName;
+        this.cellGuid = cellGuid;
         this.timestamp = timestamp;
         this.value = value;
     }
@@ -65,5 +65,11 @@ public class KPIDataPoint {
                     Objects.equals(other.value, value);
         }
         return isEqual;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("kpiName -> %s, cellGuid -> %s, timestamp -> %s, value -> %s",
+                kpiName, cellGuid, timestamp, value);
     }
 }
