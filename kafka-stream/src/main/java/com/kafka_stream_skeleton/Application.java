@@ -86,9 +86,8 @@ public class Application {
 
         counts
                 .toStream()
-                .filter((windowed, counters) -> {
-                    return counters.get("counter1") != null && counters.get("counter2") != null;
-                })
+                .filter((windowed, counters) -> counters.get("counter1") != null && counters.get("counter2") != null)
+                .filter((windowed, counters) -> counters.get("counter2") > 0)
                 .map((windowed, counters) -> {
                     final double kpiValue = counters.get("counter1").doubleValue() / counters.get("counter2").doubleValue();
                     final KPIDataPoint kpiDataPoint = new KPIDataPoint("generic-kpi", windowed.key().getGuid(), windowed.key().getTimestamp(), kpiValue);
