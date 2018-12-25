@@ -40,23 +40,21 @@ public class Application {
 
 
     private static KafkaStreams buildStream() {
+        final long INTERVAL_SECONDS = 60L;
+
         final Properties streamsConfiguration = new Properties();
         streamsConfiguration.put(StreamsConfig.APPLICATION_ID_CONFIG, APPLICATION_ID);
         streamsConfiguration.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVER);
         streamsConfiguration.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        streamsConfiguration.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100);
-
-        final long INTERVAL_SECONDS = 60L;
+        streamsConfiguration.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, INTERVAL_SECONDS * 1000);
 
         Serde<MeasResults> measResultsSerde = SerdeBuilder.buildSerde(MeasResults.class);
         Serde<Pair> pairSerde = SerdeBuilder.buildSerde(Pair.class);
         Serde<Map<String, Long>> mapSerde = Serdes.serdeFrom(new MapSerializer(), new MapDeserializer());
 
-
         final StreamsBuilder builder = new StreamsBuilder();
 
         final KStream<String, MeasResults> source = builder.stream(INPUT_TOPIC, Consumed.with(Serdes.String(), measResultsSerde));
-
 
         System.out.println("start streaming processing on topic " + INPUT_TOPIC);
 
