@@ -1,9 +1,8 @@
 package com.kafka_stream_skeleton;
 
 import com.cellwize.model.KPIDataPoint;
-import com.cellwize.model.Pair;
 import com.cellwize.model.MeasResults;
-import com.kafka_stream_skeleton.model.LoginCount;
+import com.cellwize.model.Pair;
 import com.kafka_stream_skeleton.serialization.SerdeBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serde;
@@ -51,6 +50,7 @@ public class Application {
 
         Serde<MeasResults> measResultsSerde = SerdeBuilder.buildSerde(MeasResults.class);
         Serde<Pair> pairSerde = SerdeBuilder.buildSerde(Pair.class);
+        Serde<Map<String, Long>> mapSerde = Serdes.serdeFrom(new MapSerializer(), new MapDeserializer());
 
 
         final StreamsBuilder builder = new StreamsBuilder();
@@ -58,12 +58,11 @@ public class Application {
         final KStream<String, MeasResults> source = builder.stream(INPUT_TOPIC, Consumed.with(Serdes.String(), measResultsSerde));
 
 
-
         System.out.println("start streaming processing on topic " + INPUT_TOPIC);
 
         final LongUnaryOperator rounder = (long timestamp) -> timestamp - (timestamp % (INTERVAL_SECONDS * 1000L));
 
-        KTable<Windowed<Pair>, Long> counts = source
+        KTable<Windowed<Pair>, Map<String, Long>> counts = source
                 .filter((key, value) -> value != null)
                 .map((key, value) -> {
                     final Pair pair = new Pair();
@@ -73,17 +72,12 @@ public class Application {
                 })
                 .groupByKey(Serialized.with(pairSerde, measResultsSerde))
                 .windowedBy(TimeWindows.of(TimeUnit.SECONDS.toMillis(INTERVAL_SECONDS)))
-                .aggregate(() -> 0l, (key, value, aggregate) -> {
-                    aggregate += value.getValue();
+                .aggregate(HashMap::new, (key, value, aggregate) -> {
+                    aggregate.putIfAbsent(value.getCounterName(), 0L);
+                    long sum = aggregate.get(value.getCounterName()) + value.getValue();
+                    aggregate.put(value.getCounterName(), sum);
                     return aggregate;
-                        }
-//                .aggregate(HashMap::new, (key, value, aggregate) -> {
-//                    aggregate.putIfAbsent(value.getCounterName(), 0L);
-//                    long sum = aggregate.get(value.getCounterName()) + value.getValue();
-//                    aggregate.put(value.getCounterName(), sum);
-//                    return aggregate;
-//                }
-                ,Materialized.<Pair, Long, WindowStore<Bytes, byte[]>>as("counts-store").withValueSerde(Serdes.Long()));
+                }, Materialized.<Pair, Map<String, Long>, WindowStore<Bytes, byte[]>>as("counts-store").withValueSerde(mapSerde));
 
 
         final Serde<String> stringSerde = Serdes.String();
@@ -106,7 +100,7 @@ public class Application {
         System.out.println("Streaming processing will produce results to topic " + OUTPUT_TOPIC);
 
         final KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), streamsConfiguration);
-        return  kafkaStreams;
+        return kafkaStreams;
     }
 
 }
